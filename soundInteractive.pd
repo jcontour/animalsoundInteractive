@@ -5,7 +5,7 @@
 #X obj 335 627 *~;
 #X obj 380 628 *~;
 #X obj 334 465 vsl 15 128 0 1 0 0 empty empty empty 0 -9 0 10 -262144
--1 -1 5600 1;
+-1 -1 5500 1;
 #N canvas 0 22 450 278 (subpatch) 0;
 #X array channel1 114048 float 2;
 #X coords 0 1 114048 -1 200 140 1 0 0;
@@ -33,9 +33,9 @@
 #X obj 475 460 r sampleSize;
 #X floatatom 443 489 5 0 0 0 - - -, f 5;
 #X obj 690 378 hsl 195 15 0 1 0 0 empty empty empty -2 -8 0 10 -262144
--1 -1 3706 1;
+-1 -1 16029 1;
 #X obj 209 277 hsl 128 15 0 0.5 0 0 empty empty empty -2 -8 0 10 -262144
--1 -1 479 1;
+-1 -1 9804 1;
 #X floatatom 216 300 5 0 1 0 - - -, f 5;
 #X msg 426 277 0;
 #X msg 202 378 0;
@@ -47,9 +47,7 @@
 #X text 76 277 change playbackspeed;
 #X text 41 651 https://youtu.be/boX0v54SqtU tutorial;
 #X obj 673 484 hradio 15 1 0 2 empty empty empty 0 -8 0 10 -262144
--1 -1 0;
-#X msg 351 69 read -resize IndianaBat.wav channel0;
-#X msg 388 98 read -resize veeryBird_normal.wav channel1;
+-1 -1 1;
 #X msg 673 509 set channel\$1;
 #X obj 384 565 tabread4~ channel0;
 #X obj 361 35 loadbang;
@@ -62,6 +60,9 @@
 -1 -1;
 #X obj 557 272 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
 -1 -1;
+#X msg 351 69 read -resize ../sounds/IndianaBat.wav channel0;
+#X msg 388 98 read -resize ../sounds/veeryBird_normal.wav channel1
+;
 #X connect 0 0 1 0;
 #X connect 2 0 16 0;
 #X connect 3 0 16 1;
@@ -75,7 +76,7 @@
 #X connect 11 0 10 0;
 #X connect 12 0 13 0;
 #X connect 13 0 17 0;
-#X connect 13 0 39 0;
+#X connect 13 0 37 0;
 #X connect 14 0 13 1;
 #X connect 17 0 20 0;
 #X connect 18 0 17 0;
@@ -90,22 +91,22 @@
 #X connect 28 0 12 0;
 #X connect 30 1 28 0;
 #X connect 31 0 30 0;
-#X connect 35 0 38 0;
-#X connect 35 0 45 0;
-#X connect 36 0 7 0;
-#X connect 37 0 7 0;
-#X connect 38 0 39 0;
-#X connect 39 0 2 0;
-#X connect 39 0 3 0;
-#X connect 40 0 36 0;
-#X connect 40 0 37 0;
-#X connect 41 0 10 0;
-#X connect 42 0 10 0;
-#X connect 43 0 25 0;
-#X connect 44 0 25 0;
-#X connect 45 0 46 0;
-#X connect 45 0 42 0;
-#X connect 45 0 44 0;
-#X connect 45 1 47 0;
-#X connect 45 1 41 0;
-#X connect 45 1 43 0;
+#X connect 35 0 36 0;
+#X connect 35 0 43 0;
+#X connect 36 0 37 0;
+#X connect 37 0 2 0;
+#X connect 37 0 3 0;
+#X connect 38 0 46 0;
+#X connect 38 0 47 0;
+#X connect 39 0 10 0;
+#X connect 40 0 10 0;
+#X connect 41 0 25 0;
+#X connect 42 0 25 0;
+#X connect 43 0 44 0;
+#X connect 43 0 40 0;
+#X connect 43 0 42 0;
+#X connect 43 1 45 0;
+#X connect 43 1 39 0;
+#X connect 43 1 41 0;
+#X connect 46 0 7 0;
+#X connect 47 0 7 0;
