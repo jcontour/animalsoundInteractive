@@ -1,10 +1,11 @@
 import os
+import math
 from gpiozero import Button
 from gpiozero import MCP3008
 
 pot = MCP3008(channel=0)
 
-#################### SETUP VARIABLES
+#################################################################################################### Setup variables
 
 increment = 0
 currentspeed = 0
@@ -14,7 +15,7 @@ minspeed = 0
 value = 0
 whichLED = 0
 
-#################### FUNCTIONS
+#################################################################################################### Send messages to PD
 
 def send2Pd(message=''):
 	os.system("echo '" + message + "' | pdsend 3333")
@@ -27,7 +28,7 @@ def audioSwitcher(num):
 
 def setPlaybackSpeed(val):
 	message = '1 ' + str(val) + ';'
-	print message
+	# print message
 	send2Pd(message)
 
 def setVolume(val):
@@ -36,83 +37,82 @@ def setVolume(val):
 	# print message
 	send2Pd(message)
 
+def pause():
+	message = '3 bang;'
+	send2Pd(message)
+
 # def setLED(led):
 	#do LED things
 
+#################################################################################################### Calculating values to send
 
-def remapValues(value, leftMin, leftMax, rightMin, rightMax):
-    # Figure out how 'wide' each range is
-    leftSpan = leftMax - leftMin
-    rightSpan = rightMax - rightMin
-
-    # Convert the left range into a 0-1 range (float)
-    valueScaled = float(value - leftMin) / float(leftSpan)
-
-    # Convert the 0-1 range into a value in the right range.
-    return rightMin + (valueScaled * rightSpan)
+def remapValues(inValue, inMin, inMax, outMin, outMax):
+	outValue = (((inValue - inMin) * (outMax - outMin)) / (inMax - inMin)) + outMin
+	return round(outValue, 3)
 
 def calcPlaybackSpeed(val):
 	if val < 45:
 		global currentspeed
 		currentspeed = 0
-	elif val >= 45 & val < maxspeed:
+	elif val >= 45 and val < 90:
 		global currentspeed
 		currentspeed = remapValues(val, 45, 90, 0, maxspeed)
 	else: 
 		global currentspeed
 		currentspeed = maxspeed
+
+	setPlaybackSpeed(currentspeed)
 	print("currentspeed: " + str(currentspeed))
 	# setPlaybackSpeed(currentspeed)
 
 def calcVolume(val):
-	if val < 35 | val > 90:
+	if val < 35 or val > 90:
 		global volume
 		volume = 0
-	elif val >= 35 & val < 45:
+	elif val >= 35 and val < 45:
 		global volume
 		volume = remapValues(val, 35, 45, 0, 1)
-	elif val >= 90 & val < 100:
+	elif val >= 90 and val < 100:
 		global volume
-		volume = remapValues(val, 90, 100, 1, 0)
+		volume = 1 - remapValues(val, 90, 100, 0, 1)
 	else:
 		global volume
 		volume = 1
+
+	setVolume(volume)
 	print("volume: " + str(volume))
 
 def calcLED(val):
 	global whichLED
-	whichLED = remapValues(val, 0, 135, 0 , 45)
+
+	whichLED = int(math.floor(remapValues(val, 0, 135, 0 , 45)))
+
 	print("led: " + str(whichLED))
 
-
-
 def calcValues(val):
-	if val < 0:
-		val = 0
-	elif val > 135:
-		val = 135
-
 	print ("current value: " + str(val))
 
 	calcPlaybackSpeed(val)
 	calcVolume(val)
 	calcLED(val)
 
+#################################################################################################### Setup Buttoms
+
 button_turnUp = Button(20)
 button_turnDown = Button(21)
+button_pause = Button(26)
 
 objs = [
-	{"gpioPin": 13, "startSpeed": 0.011, "increment": 0.01, "maxspeed": 0.05},	# BAT
-	{"gpioPin": 19, "startSpeed": 0.386, "increment": 0.1, "maxspeed": 1 }		# BIRD
+	{"gpioPin": 13, "startSpeed": 0.011, "maxspeed": 0.05},		# BAT
+	{"gpioPin": 19, "startSpeed": 0.386, "maxspeed": 1 }		# BIRD
 	# {"gpioPin": 26, "startSpeed": 0.386, "increment": 0.1}
 ]
 
 class Audio:
-	def __init__(self, id, gpio_pin, start_speed, increment, maxspeed):
+	def __init__(self, id, gpio_pin, start_speed, maxspeed):
 		self.id = id
 		self.button = Button(gpio_pin)
 		self.start_speed = start_speed
-		self.increment = increment
 		self.maxspeed = maxspeed
 
 		self.button.when_pressed = self.pressed 
@@ -123,21 +123,18 @@ class Audio:
 		#set global values
 		global current_audio
 		current_audio = self.id
-		global increment
-		increment = self.increment
 		global maxspeed
 		maxspeed = self.maxspeed
-		global currentspeed
-		currentspeed = self.start_speed
+		calcValues(value)
 		audioSwitcher(self.id)
 
 audiobuttons = []
 
 for index, item in enumerate(objs):
-	ab = Audio(index, item["gpioPin"], item["startSpeed"], item["increment"], item["maxspeed"])
+	ab = Audio(index, item["gpioPin"], item["startSpeed"], item["maxspeed"])
 	audiobuttons.append(ab)
 
-#################### Main Loop
+#################################################################################################### Main Loop
 
 while (True):
 	# IF it's been a while since input, stop playing audio?
@@ -146,15 +143,19 @@ while (True):
 
 	if (button_turnUp.is_pressed):
 		value = value + 1
-		if value > 135:
-			value = 135
+		# if value > 135:
+			# value = 135
 		calcValues(value)
 	
 	if (button_turnDown.is_pressed):
 		value = value - 1
-		if value < 0:
-			value = 0
+		# if value < 0:
+			# value = 0
 		calcValues(value)
+
+	if (button_pause.is_pressed):
+		pause()
 
 		
 pause()
+
