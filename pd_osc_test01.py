@@ -1,5 +1,6 @@
 import os
 import math
+import time
 from gpiozero import Button
 from gpiozero import MCP3008
 
@@ -7,9 +8,7 @@ pot = MCP3008(channel=0)
 
 #################################################################################################### Setup variables
 
-increment = 0
-currentspeed = 0
-volume = 0
+volume = 0.0
 maxspeed = 1
 minspeed = 0
 value = 0
@@ -48,15 +47,15 @@ def pause():
 
 def remapValues(inValue, inMin, inMax, outMin, outMax):
 	outValue = (((inValue - inMin) * (outMax - outMin)) / (inMax - inMin)) + outMin
-	return round(outValue, 3)
+	return round(outValue, 5)
 
 def calcPlaybackSpeed(val):
 	if val < 45:
 		global currentspeed
 		currentspeed = 0
-	elif val >= 45 and val < 90:
+	elif val >= 45 and val < 100:
 		global currentspeed
-		currentspeed = remapValues(val, 45, 90, 0, maxspeed)
+		currentspeed = remapValues(val, 45, 100, 0, maxspeed)
 	else: 
 		global currentspeed
 		currentspeed = maxspeed
@@ -66,15 +65,15 @@ def calcPlaybackSpeed(val):
 	# setPlaybackSpeed(currentspeed)
 
 def calcVolume(val):
-	if val < 35 or val > 90:
+	if val < 25 or val > 110:
 		global volume
 		volume = 0
-	elif val >= 35 and val < 45:
+	elif val >= 25 and val < 45:
 		global volume
-		volume = remapValues(val, 35, 45, 0, 1)
-	elif val >= 90 and val < 100:
+		volume = remapValues(val, 25, 45, 0.1, 1.0)
+	elif val >= 90 and val < 110:
 		global volume
-		volume = 1 - remapValues(val, 90, 100, 0, 1)
+		volume = remapValues(val, 90, 110, 1.0, 0.1)
 	else:
 		global volume
 		volume = 1
@@ -96,6 +95,19 @@ def calcValues(val):
 	calcVolume(val)
 	calcLED(val)
 
+#################################################################################################### Setup time interaction
+
+doCheckTime = False
+button_time = 0
+
+def checkTime(buttonTime):
+	# print("elapsed time: " + str(time.time() - buttonTime))
+	if time.time() - buttonTime > 15:
+		global doCheckTime
+		doCheckTime = False
+		pause()
+	
+
 #################################################################################################### Setup Buttoms
 
 button_turnUp = Button(20)
@@ -104,7 +116,7 @@ button_pause = Button(26)
 
 objs = [
 	{"gpioPin": 13, "startSpeed": 0.011, "maxspeed": 0.05},		# BAT
-	{"gpioPin": 19, "startSpeed": 0.386, "maxspeed": 1 }		# BIRD
+	{"gpioPin": 19, "startSpeed": 0.386, "maxspeed": 1.0 }		# BIRD
 	# {"gpioPin": 26, "startSpeed": 0.386, "increment": 0.1}
 ]
 
@@ -119,7 +131,8 @@ class Audio:
 
 	def pressed(self):
 		print("pressed")
-		
+		global button_time
+		button_time = time.time()
 		#set global values
 		global current_audio
 		current_audio = self.id
@@ -143,18 +156,25 @@ while (True):
 
 	if (button_turnUp.is_pressed):
 		value = value + 1
+		button_time = time.time()
+		doCheckTime = True
 		# if value > 135:
 			# value = 135
 		calcValues(value)
 	
 	if (button_turnDown.is_pressed):
 		value = value - 1
+		button_time = time.time()
+		doCheckTime = True
 		# if value < 0:
 			# value = 0
 		calcValues(value)
 
 	if (button_pause.is_pressed):
 		pause()
+
+	if doCheckTime:
+		checkTime(button_time)
 
 		
 pause()
