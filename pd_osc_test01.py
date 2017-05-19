@@ -4,7 +4,18 @@ import time
 from gpiozero import Button
 from gpiozero import MCP3008
 
-pot = MCP3008(channel=0)
+import RPi.GPIO as GPIO
+
+RoAPin = 17    # pin11
+RoBPin = 18    # pin12
+RoSPin = 27    # pin13
+
+globalCounter = 0
+
+flag = 0
+Last_RoB_Status = 0
+Current_RoB_Status = 0
+prev_Counter = 0
 
 #################################################################################################### Setup variables
 
@@ -17,7 +28,8 @@ whichLED = 0
 #################################################################################################### Send messages to PD
 
 def send2Pd(message=''):
-	os.system("echo '" + message + "' | pdsend 3333")
+	# os.system("echo '" + message + "' | pdsend 3333")
+	print "send to PD " + message
 
 def audioSwitcher(num):
 	# 0 = bat 1 = bird
@@ -114,6 +126,13 @@ button_turnUp = Button(20)
 button_turnDown = Button(21)
 button_pause = Button(26)
 
+def setup():
+	# GPIO.setmode(GPIO.BOARD)       # Numbers GPIOs by physical location
+	GPIO.setup(RoAPin, GPIO.IN)    # input mode
+	GPIO.setup(RoBPin, GPIO.IN)
+	GPIO.setup(RoSPin,GPIO.IN,pull_up_down=GPIO.PUD_UP)
+	rotaryClear()
+
 objs = [
 	{"gpioPin": 13, "startSpeed": 0.011, "maxspeed": 0.05},		# BAT
 	{"gpioPin": 19, "startSpeed": 0.386, "maxspeed": 1.0 }		# BIRD
@@ -147,35 +166,83 @@ for index, item in enumerate(objs):
 	ab = Audio(index, item["gpioPin"], item["startSpeed"], item["maxspeed"])
 	audiobuttons.append(ab)
 
-#################################################################################################### Main Loop
+#################################################################################################### KNOB STUFF
 
-while (True):
-	# IF it's been a while since input, stop playing audio?
+def knobTurned(counter):
+	global prev_Counter
+	global value
 
-	# wait for input from knob, when turned, add/subtract current increment value*degrees turned from current playSpeed
-
-	if (button_turnUp.is_pressed):
+	if counter > prev_Counter:
+		print "turn up"
 		value = value + 1
 		button_time = time.time()
 		doCheckTime = True
-		# if value > 135:
-			# value = 135
 		calcValues(value)
-	
-	if (button_turnDown.is_pressed):
+	else:
+		print "turn down"
 		value = value - 1
 		button_time = time.time()
 		doCheckTime = True
-		# if value < 0:
-			# value = 0
 		calcValues(value)
 
-	if (button_pause.is_pressed):
-		pause()
+	prev_Counter = counter
 
-	if doCheckTime:
-		checkTime(button_time)
+def rotaryDeal():
+	global flag
+	global Last_RoB_Status
+	global Current_RoB_Status
+	global globalCounter
+	Last_RoB_Status = GPIO.input(RoBPin)
+	while(not GPIO.input(RoAPin)):
+		Current_RoB_Status = GPIO.input(RoBPin)
+		flag = 1
+	if flag == 1:
+		flag = 0
+		if (Last_RoB_Status == 0) and (Current_RoB_Status == 1):
+			globalCounter = globalCounter + 1
+			# print 'globalCounter = %d' % globalCounter
+		if (Last_RoB_Status == 1) and (Current_RoB_Status == 0):
+			globalCounter = globalCounter - 1
+			# print 'globalCounter = %d' % globalCounter
 
-		
-pause()
+		if globalCounter%100 == 0:
+
+			knobTurned(globalCounter)
+
+def clear(ev=None):
+        globalCounter = 0
+	print 'globalCounter = %d' % globalCounter
+	time.sleep(1)
+
+def rotaryClear():
+        GPIO.add_event_detect(RoSPin, GPIO.FALLING, callback=clear) # wait for falling
+
+
+def loop():
+	global globalCounter
+	global doCheckTime
+	global value
+
+
+	while True:
+		rotaryDeal()
+		if (button_pause.is_pressed):
+			pause()
+
+		if doCheckTime:
+			checkTime(button_time)
+#		print 'globalCounter = %d' % globalCounter
+
+def destroy():
+	GPIO.cleanup()             # Release resource
+
+#################################################################################################### Main Loop
+
+
+if __name__ == '__main__':     # Program start from here
+	setup()
+	try:
+		loop()
+	except KeyboardInterrupt:  # When 'Ctrl+C' is pressed, the child program destroy() will be  executed.
+		destroy()
 
