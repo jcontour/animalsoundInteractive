@@ -19,16 +19,17 @@ prev_Counter = 0
 
 #################################################################################################### Setup variables
 
+value = 0				# VALUE that maps value for all other variables   		0-135
+
 volume = 0.0
 maxspeed = 1
 minspeed = 0
-value = 0
 whichLED = 0
 
 #################################################################################################### Send messages to PD
 
 def send2Pd(message=''):
-	# os.system("echo '" + message + "' | pdsend 3333")
+	os.system("echo '" + message + "' | pdsend 3333")
 	print "send to PD " + message
 
 def audioSwitcher(num):
@@ -122,9 +123,7 @@ def checkTime(buttonTime):
 
 #################################################################################################### Setup Buttoms
 
-button_turnUp = Button(20)
-button_turnDown = Button(21)
-button_pause = Button(26)
+button_pause = Button(12)
 
 def setup():
 	# GPIO.setmode(GPIO.BOARD)       # Numbers GPIOs by physical location
@@ -134,36 +133,48 @@ def setup():
 	rotaryClear()
 
 objs = [
-	{"gpioPin": 13, "startSpeed": 0.011, "maxspeed": 0.05},		# BAT
-	{"gpioPin": 19, "startSpeed": 0.386, "maxspeed": 1.0 }		# BIRD
-	# {"gpioPin": 26, "startSpeed": 0.386, "increment": 0.1}
+	{"gpioPin": 13, "startValue": 111, "maxspeed": 0.05},		# BAT
+	{"gpioPin": 19, "startValue": 123, "maxspeed": 1.0 },		# MOUSE
+	{"gpioPin": 26, "startValue": 134, "maxspeed": 0.5 },		# SQUIRREL
+	{"gpioPin": 16, "startValue": 30, "maxspeed": 1.0 },		# ELEPHANT
+	{"gpioPin": 20, "startValue": 23, "maxspeed": 0.5 },		# PEACOCK
+	{"gpioPin": 21, "startValue": 0, "maxspeed": 0.0 }		# WHALE <<< NOT IN PD YET
 ]
 
 class Audio:
-	def __init__(self, id, gpio_pin, start_speed, maxspeed):
+	def __init__(self, id, gpio_pin, start_value, maxspeed):
 		self.id = id
 		self.button = Button(gpio_pin)
-		self.start_speed = start_speed
+		self.start_value = start_value
 		self.maxspeed = maxspeed
 
 		self.button.when_pressed = self.pressed 
 
 	def pressed(self):
 		print("pressed")
+
 		global button_time
 		button_time = time.time()
-		#set global values
+
+		global doCheckTime
+		doCheckTime = True
+		
 		global current_audio
 		current_audio = self.id
+		
 		global maxspeed
 		maxspeed = self.maxspeed
+
+		global value
+		value = self.start_value
+
 		calcValues(value)
 		audioSwitcher(self.id)
 
 audiobuttons = []
 
 for index, item in enumerate(objs):
-	ab = Audio(index, item["gpioPin"], item["startSpeed"], item["maxspeed"])
+	ab = Audio(index, item["gpioPin"], item["startValue"], item["maxspeed"])
 	audiobuttons.append(ab)
 
 #################################################################################################### KNOB STUFF
@@ -171,16 +182,22 @@ for index, item in enumerate(objs):
 def knobTurned(counter):
 	global prev_Counter
 	global value
+	global button_time
+	global doCheckTime
 
 	if counter > prev_Counter:
 		print "turn up"
 		value = value + 1
+		if value > 135:
+			value = 135
 		button_time = time.time()
 		doCheckTime = True
 		calcValues(value)
 	else:
 		print "turn down"
 		value = value - 1
+		if value < 0:
+			value = 0
 		button_time = time.time()
 		doCheckTime = True
 		calcValues(value)
@@ -217,12 +234,15 @@ def clear(ev=None):
 def rotaryClear():
         GPIO.add_event_detect(RoSPin, GPIO.FALLING, callback=clear) # wait for falling
 
+def destroy():
+	GPIO.cleanup()             # Release resourcesS
+
+#################################################################################################### Main Loop
 
 def loop():
 	global globalCounter
 	global doCheckTime
 	global value
-
 
 	while True:
 		rotaryDeal()
@@ -231,13 +251,6 @@ def loop():
 
 		if doCheckTime:
 			checkTime(button_time)
-#		print 'globalCounter = %d' % globalCounter
-
-def destroy():
-	GPIO.cleanup()             # Release resource
-
-#################################################################################################### Main Loop
-
 
 if __name__ == '__main__':     # Program start from here
 	setup()
