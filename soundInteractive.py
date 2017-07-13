@@ -16,9 +16,9 @@ strip = Adafruit_DotStar(numpixels, datapin, clockpin)
 
 # - - - setup rotary encoder
 
-RoAPin = 17    # pin11
-RoBPin = 18    # pin12
-RoSPin = 27    # pin13
+RoAPin = 17	# pin11
+RoBPin = 18	# pin12
+RoSPin = 27	# pin13
 
 globalCounter = 0
 
@@ -39,7 +39,8 @@ maxspeed = 1
 minspeed = 0
 whichLED = 0
 
-############################# ----- Send messages to PD
+
+#################################################################################################### Send messages to PD
 
 def send2Pd(message=''):
 	# os.system("echo '" + message + "' | pdsend 3333")
@@ -66,7 +67,7 @@ def pauseAudio():
 	message = '3 bang;'
 	send2Pd(message)
 
-############################# ----- Calculating values to send
+#################################################################################################### Calculating values to send
 
 def remapValues(inValue, inMin, inMax, outMin, outMax):
 	outValue = (((inValue - inMin) * (outMax - outMin)) / (inMax - inMin)) + outMin
@@ -101,16 +102,15 @@ def calcVolume(val):
 whichLED = 1
 prevLED = 2
 def setLED(val):
-    global whichLED
-    global prevLED
+	global whichLED
+	global prevLED
 
-    strip.setPixelColor(prevLED, 0)
+	prevLED = whichLED
+	strip.setPixelColor(prevLED, 0)
 
-    prevLED = whichLED
-    whichLED = int(remapValues(val, 0, 135, 0, numpixels - 1))
-    
-    strip.setPixelColor(whichLED, 0x0000FF)
-    strip.show()
+	whichLED = int(remapValues(val, 0, 135, 0, numpixels - 1))	
+	strip.setPixelColor(whichLED, 0x0000FF)
+	strip.show()
 
 def calcValues(val):
 	# print ("current value: " + str(val))
@@ -170,20 +170,20 @@ def startupSequence():
 ############################# ----- Setup Buttoms
 
 def setup():
-	GPIO.setup(RoAPin, GPIO.IN)    # input mode
+	GPIO.setup(RoAPin, GPIO.IN)	# input mode
 	GPIO.setup(RoBPin, GPIO.IN)
 	GPIO.setup(RoSPin,GPIO.IN,pull_up_down=GPIO.PUD_UP)
 	strip.begin()
-	# strip.setBrightness(64)
+	strip.setBrightness(64)
 	startupSequence()
-
+	
 objs = [
 	{"gpioPin": 13, "startValue": 111, "maxspeed": 0.05},		# BAT
 	{"gpioPin": 19, "startValue": 123, "maxspeed": 1.0 },		# MOUSE
 	{"gpioPin": 26, "startValue": 134, "maxspeed": 0.5 },		# SQUIRREL
 	{"gpioPin": 16, "startValue": 30, "maxspeed": 1.0 },		# ELEPHANT
 	{"gpioPin": 20, "startValue": 23, "maxspeed": 0.5 },		# PEACOCK
-	{"gpioPin": 21, "startValue": 1, "maxspeed": 0.0 }			# WHALE
+	{"gpioPin": 21, "startValue": 27, "maxspeed": 1.0 }			# WHALE
 ]
 
 class Audio:
@@ -217,28 +217,40 @@ for index, item in enumerate(objs):
 ############################# ----- KNOB STUFF
 
 def rotaryDeal():
-    global flag
-    global prev_pos
-    global cur_pos
-    global globalCounter
+	global flag
+	global prev_pos
+	global cur_pos
+	global globalCounter
 
-    prev_pos = GPIO.input(RoBPin)
-    while(not GPIO.input(RoAPin)):
-            cur_pos = GPIO.input(RoBPin)
-            flag = 1
-    if flag == 1:
-        flag = 0
-        if (prev_pos == 0) and (cur_pos == 1):
-                globalCounter = globalCounter + 1
-        if (prev_pos == 1) and (cur_pos == 0):
-                globalCounter = globalCounter - 1
+	prev_pos = GPIO.input(RoBPin)
+	while(not GPIO.input(RoAPin)):
+			cur_pos = GPIO.input(RoBPin)
+			flag = 1
+	if flag == 1:
+		flag = 0
+		if (prev_pos == 0) and (cur_pos == 1):
+				globalCounter = globalCounter + 1
+		if (prev_pos == 1) and (cur_pos == 0):
+				globalCounter = globalCounter - 1
 	   
 	if globalCounter > max_counter:
 		globalCounter = max_counter
 	if globalCounter < 0:
 		globalCounter = 0 
 
-############################# ----- Main Loop
+# def clear(ev=None):
+# 		globalCounter = 0
+# 	print 'globalCounter = %d' % globalCounter
+# 	time.sleep(1)
+
+# def rotaryClear():
+# 		GPIO.add_event_detect(RoSPin, GPIO.FALLING, callback=clear) # wait for falling
+
+# def destroy():
+# 	GPIO.cleanup()			 # Release resourcesS
+
+
+#################################################################################################### Main Loop
 
 def loop():
 	global globalCounter

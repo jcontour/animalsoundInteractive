@@ -19,6 +19,7 @@ prev_pos = 0
 cur_pos = 0
 prev_counter = 0
 
+<<<<<<< HEAD
 max_counter = 1000
 
 def setup():
@@ -30,20 +31,6 @@ def setup():
 
         strip.begin()
         strip.setBrightness(64)
-
-# def knobTurned(counter):
-#         global prev_counter
-
-#         if counter%100 == 0:
-#                 if counter > prev_counter:
-# #                       print "turn up"
-#                         setLED(True)
-#                 else:
-# #                       print "turn down"
-#                         setLED(False)
-
-# #       print counter
-#         prev_counter = counter
 
 def remapValues(inValue, inMin, inMax, outMin, outMax):
     outValue = (((inValue - inMin) * (outMax - outMin)) / (inMax - inMin)) + outMin
@@ -65,6 +52,24 @@ def setLED(counter):
 
         strip.setPixelColor(whichLED, 0x00FF00)
         strip.show()
+
+whichLED = 1
+def setLED(bool):
+	global whichLED
+	if bool:
+		whichLED = whichLED + 1
+		if whichLED > numpixels:
+			whichLED = 0
+	else:
+		whichLED = whichLED - 1
+		if whichLED < 0:
+			whichLED = numpixels 
+
+	for led in range(numpixels):
+		strip.setPixelColor(led, 0)
+	
+	strip.setPixelColor(whichLED, 0xFF0000)
+	strip.show()
 
 def rotaryDeal():
     global flag
