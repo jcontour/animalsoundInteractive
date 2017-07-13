@@ -3,8 +3,18 @@ import math
 import time
 from gpiozero import Button
 from gpiozero import MCP3008
-
 import RPi.GPIO as GPIO
+from dotstar import Adafruit_DotStar
+
+# - - - setup pixels
+
+numpixels = 45
+datapin = 23
+clockpin = 24
+
+strip = Adafruit_DotStar(numpixels, datapin, clockpin)
+
+# - - - setup rotary encoder
 
 RoAPin = 17    # pin11
 RoBPin = 18    # pin12
@@ -13,26 +23,29 @@ RoSPin = 27    # pin13
 globalCounter = 0
 
 flag = 0
-Last_RoB_Status = 0
-Current_RoB_Status = 0
-prev_Counter = 0
+prev_pos = 0
+cur_pos = 0
+prev_counter = 0
 
-#################################################################################################### Setup variables
+max_counter = 1000
 
-value = 0				# VALUE that maps value for all other variables   		0-135
+############################# ----- Setup variables
+
+value = 0				# value that remaps all other variables   		goes from 0-135
+prev_value = 0
 
 volume = 0.0
 maxspeed = 1
 minspeed = 0
 whichLED = 0
 
-#################################################################################################### Send messages to PD
+############################# ----- Send messages to PD
 
 def send2Pd(message=''):
-	os.system("echo '" + message + "' | pdsend 3333")
+	# os.system("echo '" + message + "' | pdsend 3333")
 	print "send to PD " + message
 
-def audioSwitcher(num):
+def setAudioClip(num):
 	# 0 = bat 1 = bird
 	message = '0 ' + str(num) + ';'
 	# print message
@@ -49,88 +62,120 @@ def setVolume(val):
 	# print message
 	send2Pd(message)
 
-def pause():
+def pauseAudio():
 	message = '3 bang;'
 	send2Pd(message)
 
-# def setLED(led):
-	#do LED things
-
-#################################################################################################### Calculating values to send
+############################# ----- Calculating values to send
 
 def remapValues(inValue, inMin, inMax, outMin, outMax):
 	outValue = (((inValue - inMin) * (outMax - outMin)) / (inMax - inMin)) + outMin
 	return round(outValue, 5)
 
 def calcPlaybackSpeed(val):
+	global currentspeed
 	if val < 45:
-		global currentspeed
 		currentspeed = 0
 	elif val >= 45 and val < 100:
-		global currentspeed
 		currentspeed = remapValues(val, 45, 100, 0, maxspeed)
 	else: 
-		global currentspeed
 		currentspeed = maxspeed
 
 	setPlaybackSpeed(currentspeed)
-	print("currentspeed: " + str(currentspeed))
-	# setPlaybackSpeed(currentspeed)
+	# print("currentspeed: " + str(currentspeed))
 
 def calcVolume(val):
+	global volume
 	if val < 25 or val > 110:
-		global volume
 		volume = 0
 	elif val >= 25 and val < 45:
-		global volume
 		volume = remapValues(val, 25, 45, 0.1, 1.0)
 	elif val >= 90 and val < 110:
-		global volume
 		volume = remapValues(val, 90, 110, 1.0, 0.1)
 	else:
-		global volume
 		volume = 1
 
 	setVolume(volume)
-	print("volume: " + str(volume))
+	# print("volume: " + str(volume))
 
-def calcLED(val):
-	global whichLED
+whichLED = 1
+prevLED = 2
+def setLED(val):
+    global whichLED
+    global prevLED
 
-	whichLED = int(math.floor(remapValues(val, 0, 135, 0 , 45)))
+    strip.setPixelColor(prevLED, 0)
 
-	print("led: " + str(whichLED))
+    prevLED = whichLED
+    whichLED = int(remapValues(val, 0, 135, 0, numpixels - 1))
+    
+    strip.setPixelColor(whichLED, 0x0000FF)
+    strip.show()
 
 def calcValues(val):
-	print ("current value: " + str(val))
+	# print ("current value: " + str(val))
 
 	calcPlaybackSpeed(val)
 	calcVolume(val)
-	calcLED(val)
+	setLED(val)
 
-#################################################################################################### Setup time interaction
+############################# ----- Setup time interaction
 
-doCheckTime = False
-button_time = 0
+def clearLights():
+	for led in range(numpixels):
+		strip.setPixelColor(led, 0)
+	strip.show()
+
+# color = 0x0000FF
+# idleled = 0
+
+def idleLights():
+
+	for led in range(numpixels):
+		strip.setPixelColor(led, 0x0000FF)
+	strip.show()
+
+	# ---- way too fast rainbow idle
+	# strip.setPixelColor(idleled, color)
+	# strip.show()
+
+	# idleled += 1
+	# if idleled > numpixels - 1:
+	# 	idleled = 0
+	# 	color >>= 1
+
+	# if color == 0:
+	# 	color = 0xFF0000
+
+
+timeOfLastAction = 0
+isIdle = False
 
 def checkTime(buttonTime):
 	# print("elapsed time: " + str(time.time() - buttonTime))
-	if time.time() - buttonTime > 15:
-		global doCheckTime
-		doCheckTime = False
-		pause()
-	
+	if time.time() - buttonTime > 5:
+		global isIdle
+		isIdle = True
+		pauseAudio()
 
-#################################################################################################### Setup Buttoms
+def startupSequence():
+	colors = [0x009900, 0x999900, 0x990000, 0]
+	for color in colors:
+		for led in range(numpixels):
+			strip.setPixelColor(led, color)
+			strip.show()
+			time.sleep(0.3 / 50)
 
-button_pause = Button(12)
+
+############################# ----- Setup Buttoms
 
 def setup():
-	# GPIO.setmode(GPIO.BOARD)       # Numbers GPIOs by physical location
 	GPIO.setup(RoAPin, GPIO.IN)    # input mode
 	GPIO.setup(RoBPin, GPIO.IN)
 	GPIO.setup(RoSPin,GPIO.IN,pull_up_down=GPIO.PUD_UP)
-	rotaryClear()
+	strip.begin()
+	# strip.setBrightness(64)
+	startupSequence()
 
 objs = [
 	{"gpioPin": 13, "startValue": 111, "maxspeed": 0.05},		# BAT
@@ -138,7 +183,7 @@ objs = [
 	{"gpioPin": 26, "startValue": 134, "maxspeed": 0.5 },		# SQUIRREL
 	{"gpioPin": 16, "startValue": 30, "maxspeed": 1.0 },		# ELEPHANT
 	{"gpioPin": 20, "startValue": 23, "maxspeed": 0.5 },		# PEACOCK
-	{"gpioPin": 21, "startValue": 0, "maxspeed": 0.0 }		# WHALE <<< NOT IN PD YET
+	{"gpioPin": 21, "startValue": 1, "maxspeed": 0.0 }			# WHALE
 ]
 
 class Audio:
@@ -152,24 +197,16 @@ class Audio:
 
 	def pressed(self):
 		print("pressed")
-
-		global button_time
-		button_time = time.time()
-
-		global doCheckTime
-		doCheckTime = True
-		
-		global current_audio
-		current_audio = self.id
 		
 		global maxspeed
 		maxspeed = self.maxspeed
 
-		global value
-		value = self.start_value
+		clearLights()
 
-		calcValues(value)
-		audioSwitcher(self.id)
+		global globalCounter
+		globalCounter = remapValues(self.start_value, 0, 135, 0, 1000)
+
+		# setAudioClip(self.id)
 
 audiobuttons = []
 
@@ -177,85 +214,64 @@ for index, item in enumerate(objs):
 	ab = Audio(index, item["gpioPin"], item["startValue"], item["maxspeed"])
 	audiobuttons.append(ab)
 
-#################################################################################################### KNOB STUFF
-
-def knobTurned(counter):
-	global prev_Counter
-	global value
-	global button_time
-	global doCheckTime
-
-	if counter > prev_Counter:
-		print "turn up"
-		value = value + 1
-		if value > 135:
-			value = 135
-		button_time = time.time()
-		doCheckTime = True
-		calcValues(value)
-	else:
-		print "turn down"
-		value = value - 1
-		if value < 0:
-			value = 0
-		button_time = time.time()
-		doCheckTime = True
-		calcValues(value)
-
-	prev_Counter = counter
+############################# ----- KNOB STUFF
 
 def rotaryDeal():
-	global flag
-	global Last_RoB_Status
-	global Current_RoB_Status
-	global globalCounter
-	Last_RoB_Status = GPIO.input(RoBPin)
-	while(not GPIO.input(RoAPin)):
-		Current_RoB_Status = GPIO.input(RoBPin)
-		flag = 1
-	if flag == 1:
-		flag = 0
-		if (Last_RoB_Status == 0) and (Current_RoB_Status == 1):
-			globalCounter = globalCounter + 1
-			# print 'globalCounter = %d' % globalCounter
-		if (Last_RoB_Status == 1) and (Current_RoB_Status == 0):
-			globalCounter = globalCounter - 1
-			# print 'globalCounter = %d' % globalCounter
+    global flag
+    global prev_pos
+    global cur_pos
+    global globalCounter
 
-		if globalCounter%100 == 0:
+    prev_pos = GPIO.input(RoBPin)
+    while(not GPIO.input(RoAPin)):
+            cur_pos = GPIO.input(RoBPin)
+            flag = 1
+    if flag == 1:
+        flag = 0
+        if (prev_pos == 0) and (cur_pos == 1):
+                globalCounter = globalCounter + 1
+        if (prev_pos == 1) and (cur_pos == 0):
+                globalCounter = globalCounter - 1
+	   
+	if globalCounter > max_counter:
+		globalCounter = max_counter
+	if globalCounter < 0:
+		globalCounter = 0 
 
-			knobTurned(globalCounter)
-
-def clear(ev=None):
-        globalCounter = 0
-	print 'globalCounter = %d' % globalCounter
-	time.sleep(1)
-
-def rotaryClear():
-        GPIO.add_event_detect(RoSPin, GPIO.FALLING, callback=clear) # wait for falling
-
-def destroy():
-	GPIO.cleanup()             # Release resourcesS
-
-#################################################################################################### Main Loop
+############################# ----- Main Loop
 
 def loop():
 	global globalCounter
-	global doCheckTime
 	global value
+	global prev_value
+	global isIdle
+	global timeOfLastAction
 
 	while True:
 		rotaryDeal()
-		if (button_pause.is_pressed):
-			pause()
 
-		if doCheckTime:
-			checkTime(button_time)
+		prev_value = value
+		value = int(remapValues(globalCounter, 0, max_counter, 0, 135))
 
-if __name__ == '__main__':     # Program start from here
+		if prev_value != value:
+			if isIdle:
+				clearLights()
+				isIdle = False
+			timeOfLastAction = time.time()
+			calcValues(value)
+		else:
+			if isIdle:
+				idleLights()
+			else:
+				checkTime(timeOfLastAction)
+
+		# print str(isIdle) + " " + str(value)
+
+if __name__ == '__main__':
 	setup()
 	try:
 		loop()
-	except KeyboardInterrupt:  # When 'Ctrl+C' is pressed, the child program destroy() will be  executed.
-		destroy()
+	except KeyboardInterrupt:
+		clearLights()
+		GPIO.cleanup()
 
