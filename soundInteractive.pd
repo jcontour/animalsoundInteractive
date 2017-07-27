@@ -1,4 +1,4 @@
-#N canvas 478 95 1299 852 10;
+#N canvas 195 73 1299 852 10;
 #X obj 316 684 *~;
 #X obj 361 685 *~;
 #N canvas 0 50 450 278 (subpatch) 0;
@@ -26,7 +26,7 @@
 #X obj 409 537 r sampleSize;
 #X floatatom 377 566 5 0 0 0 - - -, f 5;
 #X obj 958 527 hsl 195 15 0 1 0 0 empty empty empty -2 -8 0 10 -262144
--1 -1 3019 1;
+-1 -1 0 1;
 #X floatatom 266 348 5 0 1 0 - - -, f 5;
 #X msg 360 354 0;
 #X msg 213 470 0;
@@ -92,11 +92,9 @@
 -1 -1;
 #X obj 534 247 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144
 -1 -1;
-#X msg 589 333;
 #X msg 16 301 0.068;
 #X msg 528 334 644322;
 #X msg 578 306 1.40751e+06;
-#X msg 16 358;
 #X msg 16 339 0.031;
 #X msg 571 279 240000;
 #X msg 16 320 0.183;
@@ -105,6 +103,9 @@
 #X obj 670 462 hradio 15 1 0 6 empty empty empty 0 -8 0 10 -262144
 -1 -1 4;
 #X obj 670 428 r audioSwitcher;
+#X msg 589 333 360383;
+#X msg 16 358 0.122;
+#X msg 494 180 read -resize whale.wav channel5;
 #X connect 0 0 11 0;
 #X connect 1 0 11 1;
 #X connect 4 0 5 0;
@@ -135,6 +136,7 @@
 #X connect 29 0 54 0;
 #X connect 29 0 53 0;
 #X connect 29 0 52 0;
+#X connect 29 0 77 0;
 #X connect 30 0 6 0;
 #X connect 31 0 6 0;
 #X connect 34 0 31 0;
@@ -164,14 +166,15 @@
 #X connect 60 3 61 0;
 #X connect 60 4 62 0;
 #X connect 60 5 63 0;
-#X connect 61 0 71 0;
-#X connect 62 0 68 0;
-#X connect 63 0 65 0;
-#X connect 64 0 67 0;
-#X connect 65 0 6 0;
+#X connect 61 0 69 0;
+#X connect 62 0 67 0;
+#X connect 63 0 75 0;
+#X connect 64 0 66 0;
+#X connect 66 0 6 0;
 #X connect 67 0 6 0;
-#X connect 68 0 6 0;
-#X connect 71 0 6 0;
-#X connect 75 0 60 0;
-#X connect 75 0 27 0;
-#X connect 76 0 75 0;
+#X connect 69 0 6 0;
+#X connect 73 0 60 0;
+#X connect 73 0 27 0;
+#X connect 74 0 73 0;
+#X connect 75 0 6 0;
+#X connect 77 0 4 0;

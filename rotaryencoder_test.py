@@ -1,12 +1,15 @@
+#TEST FILE FOR ROTARY ENCODER AND LED STRIP
+
 #!/usr/bin/env python
 import RPi.GPIO as GPIO
 import time
 from dotstar import Adafruit_DotStar
 
 numpixels = 45
-datapin   = 23
-clockpin  = 24
-strip     = Adafruit_DotStar(numpixels, datapin, clockpin)
+# datapin   = 23
+# clockpin  = 24
+# strip     = Adafruit_DotStar(numpixels, datapin, clockpin)
+strip   = Adafruit_DotStar(numpixels)
 
 RoAPin = 11    # pin11
 RoBPin = 12    # pin12
@@ -19,7 +22,6 @@ prev_pos = 0
 cur_pos = 0
 prev_counter = 0
 
-<<<<<<< HEAD
 max_counter = 1000
 
 def setup():
@@ -43,33 +45,17 @@ def setLED(counter):
         global prevLED
 
         # for led in range(numpixels):
-        strip.setPixelColor(prevLED, 0)
+        # strip.setPixelColor(prevLED, 0)
 
         prevLED = whichLED
         whichLED = remapValues(counter, 0, max_counter, 0, numpixels - 1)
         
         # print whichLED
-
+        for led in range(numpixels):
+            strip.setPixelColor(led, 0)
+            # strip.show()
         strip.setPixelColor(whichLED, 0x00FF00)
         strip.show()
-
-whichLED = 1
-def setLED(bool):
-	global whichLED
-	if bool:
-		whichLED = whichLED + 1
-		if whichLED > numpixels:
-			whichLED = 0
-	else:
-		whichLED = whichLED - 1
-		if whichLED < 0:
-			whichLED = numpixels 
-
-	for led in range(numpixels):
-		strip.setPixelColor(led, 0)
-	
-	strip.setPixelColor(whichLED, 0xFF0000)
-	strip.show()
 
 def rotaryDeal():
     global flag
